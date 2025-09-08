@@ -1,24 +1,23 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+import AuthService, { User } from '@/services/AuthService';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  isLoading: boolean;
+  signUpWithEmail: (email: string, name: string) => Promise<{ user: User; needsVerification: boolean }>;
+  completeEmailSignUp: (email: string, name: string, verificationCode: string) => Promise<User>;
+  signInWithProvider: (provider: 'google' | 'yahoo' | 'x' | 'facebook' | 'instagram') => Promise<User>;
+  verifyEmailCode: (email: string, code: string) => Promise<boolean>;
+  resendVerificationCode: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 export const [AuthProvider, useAuth] = createContextHook<AuthContextType>(() => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadUser();
@@ -26,53 +25,104 @@ export const [AuthProvider, useAuth] = createContextHook<AuthContextType>(() => 
 
   const loadUser = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        setUser(JSON.parse(userData));
+      setIsLoading(true);
+      const currentUser = await AuthService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
         setIsAuthenticated(true);
       }
     } catch (error) {
       console.error('Error loading user:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
-    // Mock signup - in production, this would call an API
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-    };
-    
-    await AsyncStorage.setItem('user', JSON.stringify(newUser));
-    setUser(newUser);
-    setIsAuthenticated(true);
+  const signUpWithEmail = useCallback(async (email: string, name: string) => {
+    try {
+      setIsLoading(true);
+      const result = await AuthService.signUpWithEmail(email, name);
+      setUser(result.user);
+      return result;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    // Mock signin - in production, this would call an API
-    const mockUser: User = {
-      id: Date.now().toString(),
-      email,
-      name: 'User',
-    };
-    
-    await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-    setUser(mockUser);
-    setIsAuthenticated(true);
+  const completeEmailSignUp = useCallback(async (email: string, name: string, verificationCode: string) => {
+    try {
+      setIsLoading(true);
+      const newUser = await AuthService.completeEmailSignUp(email, name, verificationCode);
+      setUser(newUser);
+      setIsAuthenticated(true);
+      return newUser;
+    } catch (error) {
+      console.error('Complete sign up error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const signInWithProvider = useCallback(async (provider: 'google' | 'yahoo' | 'x' | 'facebook' | 'instagram') => {
+    try {
+      setIsLoading(true);
+      const newUser = await AuthService.signInWithProvider(provider);
+      setUser(newUser);
+      setIsAuthenticated(true);
+      return newUser;
+    } catch (error) {
+      console.error('Social sign in error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const verifyEmailCode = useCallback(async (email: string, code: string) => {
+    try {
+      return await AuthService.verifyEmailCode(email, code);
+    } catch (error) {
+      console.error('Email verification error:', error);
+      throw error;
+    }
+  }, []);
+
+  const resendVerificationCode = useCallback(async (email: string) => {
+    try {
+      await AuthService.resendVerificationCode(email);
+    } catch (error) {
+      console.error('Resend verification code error:', error);
+      throw error;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
-    await AsyncStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
+    try {
+      setIsLoading(true);
+      await AuthService.signOut();
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   return useMemo(() => ({
     user,
     isAuthenticated,
-    signUp,
-    signIn,
+    isLoading,
+    signUpWithEmail,
+    completeEmailSignUp,
+    signInWithProvider,
+    verifyEmailCode,
+    resendVerificationCode,
     signOut,
-  }), [user, isAuthenticated, signUp, signIn, signOut]);
+  }), [user, isAuthenticated, isLoading, signUpWithEmail, completeEmailSignUp, signInWithProvider, verifyEmailCode, resendVerificationCode, signOut]);
 });

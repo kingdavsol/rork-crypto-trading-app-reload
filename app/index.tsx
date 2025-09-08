@@ -16,15 +16,29 @@ console.log('LandingPage: Component loaded');
 
 export default function LandingPage() {
   console.log('LandingPage: Rendering');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     console.log('LandingPage: Checking authentication', isAuthenticated);
-    if (isAuthenticated) {
+    if (!isLoading && isAuthenticated) {
       console.log('LandingPage: User authenticated, redirecting to tabs');
       router.replace('/(tabs)/home');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#0A0E27', '#1A1F3A']}
+          style={styles.loadingContainer}
+        >
+          <Text style={styles.logo}>CryptoBot Pro</Text>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   const topGainers = [
     { symbol: 'PEPE', change: '+127.3%', period: '24h' },
@@ -194,6 +208,11 @@ export default function LandingPage() {
       container: {
         flex: 1,
         backgroundColor: '#0A0E27',
+      },
+      loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
       },
       scrollView: {
         flex: 1,
