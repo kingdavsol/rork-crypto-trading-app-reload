@@ -49,6 +49,7 @@ export class CCIMarketBot {
   private performance: BotPerformance;
   private priceHistory: Map<string, CCIData[]> = new Map();
   private lastAnalysis: number = 0;
+  private static readonly MAX_HISTORY = 50; // period + maPeriod + buffer
 
   constructor(config: BotConfig, cciConfig?: Partial<CCIConfig>) {
     this.config = config;
@@ -127,10 +128,10 @@ export class CCIMarketBot {
 
     history.push(cciData);
     
-    // Keep only necessary history (period + maPeriod + buffer)
-    const maxHistory = this.cciConfig.period + this.cciConfig.maPeriod + 10;
-    if (history.length > maxHistory) {
-      history.shift();
+    // Keep only necessary history (period + maPeriod + buffer) using splice pruning
+    const maxHistory = Math.max(CCIMarketBot.MAX_HISTORY, this.cciConfig.period + this.cciConfig.maPeriod + 10);
+    if (history.length > maxHistory + 10) {
+      history.splice(0, history.length - maxHistory);
     }
   }
 
@@ -241,11 +242,14 @@ export class CCIMarketBot {
     
     // Calculate R-squared for trend strength
     const n = prices.length;
-    const x = Array.from({length: n}, (_, i) => i);
-    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumX = (n - 1) * n / 2;
     const sumY = prices.reduce((a, b) => a + b, 0);
-    const sumXY = x.reduce((sum, xi, i) => sum + xi * prices[i], 0);
-    const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+    let sumXY = 0;
+    let sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      sumXY += i * prices[i];
+      sumXX += i * i;
+    }
     
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const meanY = sumY / n;
@@ -254,7 +258,7 @@ export class CCIMarketBot {
     let ssTot = 0;
     
     for (let i = 0; i < n; i++) {
-      const predicted = slope * x[i];
+      const predicted = slope * i;
       ssRes += Math.pow(prices[i] - predicted, 2);
       ssTot += Math.pow(prices[i] - meanY, 2);
     }

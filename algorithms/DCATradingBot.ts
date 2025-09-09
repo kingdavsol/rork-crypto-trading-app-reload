@@ -35,6 +35,8 @@ export class DCATradingBot {
   private positions: Map<string, DCAPosition> = new Map();
   private performance: BotPerformance;
   private marketData: Map<string, MarketData[]> = new Map();
+  private static readonly MAX_HISTORY = 1000;
+  private static readonly PRUNE_CHUNK = 200;
 
   constructor(config: BotConfig, schedule: DCASchedule) {
     this.config = config;
@@ -63,9 +65,9 @@ export class DCATradingBot {
       const history = this.marketData.get(data.symbol)!;
       history.push(data);
       
-      // Keep only last 1000 data points
-      if (history.length > 1000) {
-        history.shift();
+      // Keep only last MAX_HISTORY data points with chunked pruning
+      if (history.length > DCATradingBot.MAX_HISTORY + DCATradingBot.PRUNE_CHUNK) {
+        history.splice(0, history.length - DCATradingBot.MAX_HISTORY);
       }
     });
 

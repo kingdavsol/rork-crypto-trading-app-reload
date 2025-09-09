@@ -46,6 +46,7 @@ export class SmartStakingBot {
   private opportunities: Map<string, StakingOpportunity[]> = new Map();
   private performance: BotPerformance;
   private lastOptimization: number = 0;
+  private static readonly MAX_OPPS_PER_SYMBOL = 10;
 
   constructor(config: BotConfig) {
     this.config = config;
@@ -101,7 +102,8 @@ export class SmartStakingBot {
         opportunities.push(opportunity);
       });
       
-      this.opportunities.set(asset.symbol, opportunities);
+      // Limit stored opportunities per symbol to reduce memory
+      this.opportunities.set(asset.symbol, opportunities.slice(0, SmartStakingBot.MAX_OPPS_PER_SYMBOL));
     });
   }
 

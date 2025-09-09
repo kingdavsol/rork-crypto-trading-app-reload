@@ -7,15 +7,32 @@ import { TradingBotProvider } from "@/providers/TradingBotProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-console.log('RootLayout: Initializing app');
+// console.log disabled for performance
 
 // Prevent auto hide splash screen
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      refetchInterval: 15 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      retry: 2,
+      retryDelay: (attemptIndex: number): number => Math.min(60000, Math.pow(2, attemptIndex) * 1000),
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: (attemptIndex: number): number => Math.min(30000, Math.pow(2, attemptIndex) * 1000),
+    },
+  },
+});
 
 function RootLayoutNav() {
-  console.log('RootLayoutNav: Rendering stack');
+  // console.log('RootLayoutNav: Rendering stack');
   return (
     <Stack screenOptions={{ 
       headerBackTitle: "Back",
@@ -45,9 +62,9 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  console.log('RootLayout: Rendering root layout');
+  // console.log('RootLayout: Rendering root layout');
   useEffect(() => {
-    console.log('RootLayout: Hiding splash screen');
+    // console.log('RootLayout: Hiding splash screen');
     const hideSplash = async () => {
       try {
         await SplashScreen.hideAsync();

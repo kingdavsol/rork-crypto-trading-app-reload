@@ -68,6 +68,8 @@ export class MomentumTradingBot {
   private performance: BotPerformance;
   private priceHistory: Map<string, MarketData[]> = new Map();
   private lastRebalance: number = 0;
+  private static readonly MAX_HISTORY = 1000;
+  private static readonly PRUNE_CHUNK = 200;
 
   constructor(config: BotConfig) {
     this.config = config;
@@ -95,9 +97,9 @@ export class MomentumTradingBot {
       const history = this.priceHistory.get(data.symbol)!;
       history.push(data);
       
-      // Keep only last 1000 data points for memory efficiency
-      if (history.length > 1000) {
-        history.shift();
+      // Keep only last MAX_HISTORY data points with chunked pruning to reduce O(n) shifts
+      if (history.length > MomentumTradingBot.MAX_HISTORY + MomentumTradingBot.PRUNE_CHUNK) {
+        history.splice(0, history.length - MomentumTradingBot.MAX_HISTORY);
       }
     });
 
@@ -225,14 +227,18 @@ export class MomentumTradingBot {
     
     // Calculate linear regression slope
     const n = prices.length;
-    const x = Array.from({length: n}, (_, i) => i);
-    const sumX = x.reduce((a, b) => a + b, 0);
+    // Use closed-form sums to avoid allocating x array
+    const sumX = (n - 1) * n / 2;
     const sumY = prices.reduce((a, b) => a + b, 0);
-    const sumXY = x.reduce((sum, xi, i) => sum + xi * prices[i], 0);
-    const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+    let sumXY = 0;
+    let sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      sumXY += i * prices[i];
+      sumXX += i * i;
+    }
     
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    const rSquared = this.calculateRSquared(prices, x, slope);
+    const rSquared = this.calculateRSquared(prices, slope);
     
     return slope * rSquared * 100;
   }
@@ -279,7 +285,7 @@ export class MomentumTradingBot {
     return Math.sqrt(variance);
   }
 
-  private calculateRSquared(prices: number[], x: number[], slope: number): number {
+  private calculateRSquared(prices: number[], slope: number): number {
     const n = prices.length;
     const sumY = prices.reduce((a, b) => a + b, 0);
     const meanY = sumY / n;
@@ -288,7 +294,7 @@ export class MomentumTradingBot {
     let ssTot = 0;
     
     for (let i = 0; i < n; i++) {
-      const predicted = slope * x[i];
+      const predicted = slope * i;
       ssRes += Math.pow(prices[i] - predicted, 2);
       ssTot += Math.pow(prices[i] - meanY, 2);
     }
@@ -423,10 +429,11 @@ export class MomentumTradingBot {
   private checkTakeProfitTriggers(): TradingSignal[] {
     const signals: TradingSignal[] = [];
     
-    if (!this.config.takeProfit) return signals;
+    const takeProfit = this.config.takeProfit;
+    if (takeProfit === undefined) return signals;
     
     this.positions.forEach((position, symbol) => {
-      if (position.pnlPercentage >= this.config.takeProfit) {
+      if (position.pnlPercentage >= takeProfit) {
         signals.push({
           action: 'SELL',
           symbol,
