@@ -3,8 +3,8 @@ FROM oven/bun:1 as builder
 WORKDIR /app
 COPY package.json bun.lock tsconfig.json ./
 COPY . .
-RUN bun install --frozen-lockfile
-RUN bunx expo export --platform web -o dist
+RUN bun install
+RUN bunx expo export --platform web
 
 FROM nginx:alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf

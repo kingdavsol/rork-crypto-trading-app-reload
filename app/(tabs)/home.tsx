@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,34 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, DollarSign, Activity, Zap, Plus, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTradingBot } from '@/providers/TradingBotProvider';
+import { useQuery } from '@tanstack/react-query';
+import MarketService, { MarketCoin } from '@/services/MarketService';
 
 export default function DashboardScreen() {
   const { portfolio, activeBots, recentTrades } = useTradingBot();
+
+  const { data: markets, isLoading, error } = useQuery<MarketCoin[]>({
+    queryKey: ['markets', 'coingecko'],
+    queryFn: () => MarketService.fetchMarkets(200),
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
+  });
+
+  const top24h = useMemo(() => {
+    if (!markets) return [] as MarketCoin[];
+    return [...markets]
+      .filter(c => typeof c.price_change_percentage_24h_in_currency === 'number')
+      .sort((a, b) => (b.price_change_percentage_24h_in_currency || 0) - (a.price_change_percentage_24h_in_currency || 0))
+      .slice(0, 4);
+  }, [markets]);
+
+  const top7d = useMemo(() => {
+    if (!markets) return [] as MarketCoin[];
+    return [...markets]
+      .filter(c => typeof c.price_change_percentage_7d_in_currency === 'number')
+      .sort((a, b) => (b.price_change_percentage_7d_in_currency || 0) - (a.price_change_percentage_7d_in_currency || 0))
+      .slice(0, 4);
+  }, [markets]);
 
   const stats = [
     { label: 'Total Value', value: '$12,458.32', change: '+12.5%', positive: true },
@@ -125,6 +150,46 @@ export default function DashboardScreen() {
               </Text>
               <Text style={[styles.tradePnl, trade.pnl > 0 ? styles.positive : styles.negative]}>
                 {trade.pnl > 0 ? '+' : ''}{trade.pnl}%
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Top Performers (24h)</Text>
+        </View>
+        {isLoading && <Text style={{ color: '#94A3B8' }}>Loading market data…</Text>}
+        {error && <Text style={{ color: '#EF4444' }}>Failed to load market data</Text>}
+        {!isLoading && !error && top24h.map((coin) => (
+          <View key={coin.id} style={styles.tradeCard}>
+            <View style={styles.tradeInfo}>
+              <Text style={styles.tradePair}>{coin.symbol.toUpperCase()} • {coin.name}</Text>
+              <Text style={styles.tradeTime}>${coin.current_price.toLocaleString()}</Text>
+            </View>
+            <View style={styles.tradeDetails}>
+              <Text style={[styles.tradePnl, (coin.price_change_percentage_24h_in_currency || 0) >= 0 ? styles.positive : styles.negative]}>
+                {(coin.price_change_percentage_24h_in_currency || 0).toFixed(2)}%
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Top Performers (7d)</Text>
+        </View>
+        {!isLoading && !error && top7d.map((coin) => (
+          <View key={coin.id} style={styles.tradeCard}>
+            <View style={styles.tradeInfo}>
+              <Text style={styles.tradePair}>{coin.symbol.toUpperCase()} • {coin.name}</Text>
+              <Text style={styles.tradeTime}>${coin.current_price.toLocaleString()}</Text>
+            </View>
+            <View style={styles.tradeDetails}>
+              <Text style={[styles.tradePnl, (coin.price_change_percentage_7d_in_currency || 0) >= 0 ? styles.positive : styles.negative]}>
+                {(coin.price_change_percentage_7d_in_currency || 0).toFixed(2)}%
               </Text>
             </View>
           </View>
