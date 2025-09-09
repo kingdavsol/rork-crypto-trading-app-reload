@@ -42,7 +42,7 @@ export default function LandingPage() {
     );
   }
 
-  const { data: markets, isLoading, error } = useQuery<MarketCoin[]>({
+  const { data: markets, isLoading: marketsLoading, error } = useQuery<MarketCoin[]>({
     queryKey: ['landing-markets', 'coingecko'],
     queryFn: () => MarketService.fetchMarkets(200),
     staleTime: 15 * 60 * 1000,
@@ -81,10 +81,10 @@ export default function LandingPage() {
 
           <View style={styles.profitShowcase}>
             <Text style={styles.profitTitle}>Today&apos;s Top Performers</Text>
-            {isLoading && <Text style={styles.loadingText}>Loading market data…</Text>}
+            {marketsLoading && <Text style={styles.loadingText}>Loading market data…</Text>}
             {error && <Text style={styles.errorText}>Failed to load market data</Text>}
 
-            {!isLoading && !error && (
+            {!marketsLoading && !error && (
               <>
                 <Text style={styles.subHeading}>Fastest Rising (24h)</Text>
                 <View style={styles.gainersGrid}>
