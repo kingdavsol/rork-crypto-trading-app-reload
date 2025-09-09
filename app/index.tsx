@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, Shield, Zap, DollarSign, ChevronRight, AlertCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
+import { useQuery } from '@tanstack/react-query';
+import MarketService, { MarketCoin } from '@/services/MarketService';
 
 console.log('LandingPage: Component loaded');
 
@@ -40,12 +42,28 @@ export default function LandingPage() {
     );
   }
 
-  const topGainers = [
-    { symbol: 'PEPE', change: '+127.3%', period: '24h' },
-    { symbol: 'BONK', change: '+89.5%', period: '24h' },
-    { symbol: 'WIF', change: '+67.2%', period: '7d' },
-    { symbol: 'RNDR', change: '+45.8%', period: '7d' },
-  ];
+  const { data: markets, isLoading, error } = useQuery<MarketCoin[]>({
+    queryKey: ['landing-markets', 'coingecko'],
+    queryFn: () => MarketService.fetchMarkets(200),
+    staleTime: 15 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
+  });
+
+  const top24h = useMemo(() => {
+    if (!markets) return [] as MarketCoin[];
+    return [...markets]
+      .filter(c => typeof c.price_change_percentage_24h_in_currency === 'number')
+      .sort((a, b) => (b.price_change_percentage_24h_in_currency || 0) - (a.price_change_percentage_24h_in_currency || 0))
+      .slice(0, 4);
+  }, [markets]);
+
+  const top7d = useMemo(() => {
+    if (!markets) return [] as MarketCoin[];
+    return [...markets]
+      .filter(c => typeof c.price_change_percentage_7d_in_currency === 'number')
+      .sort((a, b) => (b.price_change_percentage_7d_in_currency || 0) - (a.price_change_percentage_7d_in_currency || 0))
+      .slice(0, 4);
+  }, [markets]);
 
   const buyInAmounts = [100, 300, 500, 1000, 2000, 5000];
 
@@ -63,15 +81,35 @@ export default function LandingPage() {
 
           <View style={styles.profitShowcase}>
             <Text style={styles.profitTitle}>Today&apos;s Top Performers</Text>
-            <View style={styles.gainersGrid}>
-              {topGainers.map((coin, index) => (
-                <View key={index} style={styles.gainerCard} testID={`gainer-${index}`}>
-                  <Text style={styles.coinSymbol}>{coin.symbol}</Text>
-                  <Text style={styles.coinGain}>{coin.change}</Text>
-                  <Text style={styles.coinPeriod}>{coin.period}</Text>
+            {isLoading && <Text style={styles.loadingText}>Loading market data…</Text>}
+            {error && <Text style={styles.errorText}>Failed to load market data</Text>}
+
+            {!isLoading && !error && (
+              <>
+                <Text style={styles.subHeading}>Fastest Rising (24h)</Text>
+                <View style={styles.gainersGrid}>
+                  {top24h.map((coin, index) => (
+                    <View key={`24h-${coin.id}`} style={styles.gainerCard} testID={`gainer-24h-${index}`}>
+                      <Text style={styles.coinSymbol}>{coin.symbol.toUpperCase()}</Text>
+                      <Text style={styles.coinGain}>+{(coin.price_change_percentage_24h_in_currency || 0).toFixed(2)}%</Text>
+                      <Text style={styles.coinPeriod}>24h</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
+
+                <Text style={styles.subHeading}>Fastest Rising (7d)</Text>
+                <View style={styles.gainersGrid}>
+                  {top7d.map((coin, index) => (
+                    <View key={`7d-${coin.id}`} style={styles.gainerCard} testID={`gainer-7d-${index}`}>
+                      <Text style={styles.coinSymbol}>{coin.symbol.toUpperCase()}</Text>
+                      <Text style={styles.coinGain}>+{(coin.price_change_percentage_7d_in_currency || 0).toFixed(2)}%</Text>
+                      <Text style={styles.coinPeriod}>7d</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
             <Text style={styles.profitSubtext}>
               Our momentum bot captured 73% of these gains automatically
             </Text>
@@ -249,6 +287,12 @@ export default function LandingPage() {
         marginBottom: 16,
         textAlign: 'center',
       },
+      subHeading: {
+        fontSize: 14,
+        color: '#94A3B8',
+        marginBottom: 8,
+        textAlign: 'left',
+      },
       gainersGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -279,6 +323,16 @@ export default function LandingPage() {
       coinPeriod: {
         fontSize: 12,
         color: '#94A3B8',
+      },
+      loadingText: {
+        color: '#94A3B8',
+        textAlign: 'center',
+        marginBottom: 8,
+      },
+      errorText: {
+        color: '#EF4444',
+        textAlign: 'center',
+        marginBottom: 8,
       },
       profitSubtext: {
         fontSize: 14,
