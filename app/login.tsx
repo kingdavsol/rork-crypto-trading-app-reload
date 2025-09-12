@@ -17,15 +17,15 @@ import { router } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function LoginScreen() {
-  const { 
-    signUpWithEmail, 
-    completeEmailSignUp, 
-    signInWithProvider, 
-    verifyEmailCode, 
+  const {
+    signUpWithEmail,
+    completeEmailSignUp,
+    signInWithProvider,
+    verifyEmailCode,
     resendVerificationCode,
-    isLoading 
+    isLoading
   } = useAuth();
-  
+
   const [step, setStep] = useState(1); // 1: Login/Signup, 2: Email Verification, 3: Terms
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
@@ -33,7 +33,6 @@ export default function LoginScreen() {
   const [verificationCode, setVerificationCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToRisks, setAgreedToRisks] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
 
   const handleEmailSignUp = async () => {
     if (!email || !name) {
@@ -42,10 +41,9 @@ export default function LoginScreen() {
     }
 
     try {
-      const result = await signUpWithEmail(email, name);
-      setPendingUser(result.user);
+      await signUpWithEmail(email, name);
       setStep(2);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create account. Please try again.');
     }
   };
@@ -64,7 +62,7 @@ export default function LoginScreen() {
       } else {
         Alert.alert('Error', 'Invalid verification code');
       }
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('Error', error.message || 'Verification failed');
     }
   };
@@ -73,7 +71,7 @@ export default function LoginScreen() {
     try {
       await resendVerificationCode(email);
       Alert.alert('Success', 'Verification code sent to your email');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to resend code');
     }
   };
@@ -82,7 +80,7 @@ export default function LoginScreen() {
     try {
       await signInWithProvider(provider);
       router.replace('/(tabs)/home');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', `Failed to sign in with ${provider}`);
     }
   };
@@ -98,7 +96,7 @@ export default function LoginScreen() {
   const renderSocialButtons = () => (
     <View style={styles.socialContainer}>
       <Text style={styles.socialTitle}>Or continue with</Text>
-      
+
       <TouchableOpacity
         style={[styles.socialButton, styles.googleButton]}
         onPress={() => handleSocialSignIn('google')}
@@ -201,9 +199,9 @@ export default function LoginScreen() {
         onPress={() => setIsSignUp(!isSignUp)}
       >
         <Text style={styles.switchButtonText}>
-          {isSignUp 
-            ? 'Already have an account? Sign In' 
-            : "Don't have an account? Sign Up"
+          {isSignUp
+            ? 'Already have an account? Sign In'
+            : "Don&apos;t have an account? Sign Up"
           }
         </Text>
       </TouchableOpacity>
@@ -222,7 +220,7 @@ export default function LoginScreen() {
 
       <Text style={styles.stepTitle}>Verify Your Email</Text>
       <Text style={styles.stepSubtitle}>
-        We've sent a 6-digit verification code to {email}
+        We&apos;ve sent a 6-digit verification code to {email}
       </Text>
 
       <View style={styles.inputContainer}>
@@ -267,10 +265,10 @@ export default function LoginScreen() {
         <View style={styles.complianceSection}>
           <Text style={styles.complianceTitle}>Risk Disclosure</Text>
           <Text style={styles.complianceText}>
-            Trading cryptocurrencies carries a high level of risk and may not be suitable for all investors. 
-            Before deciding to trade cryptocurrency you should carefully consider your investment objectives, 
-            level of experience, and risk appetite. The possibility exists that you could sustain a loss of 
-            some or all of your initial investment and therefore you should not invest money that you cannot 
+            Trading cryptocurrencies carries a high level of risk and may not be suitable for all investors.
+            Before deciding to trade cryptocurrency you should carefully consider your investment objectives,
+            level of experience, and risk appetite. The possibility exists that you could sustain a loss of
+            some or all of your initial investment and therefore you should not invest money that you cannot
             afford to lose.
           </Text>
         </View>
@@ -278,8 +276,8 @@ export default function LoginScreen() {
         <View style={styles.complianceSection}>
           <Text style={styles.complianceTitle}>Fee Structure</Text>
           <Text style={styles.complianceText}>
-            Our platform charges a 2% performance fee on realized profits only. This fee is automatically 
-            deducted and sent to the company wallet on the Base network. No fees are charged on losses or 
+            Our platform charges a 2% performance fee on realized profits only. This fee is automatically
+            deducted and sent to the company wallet on the Base network. No fees are charged on losses or
             on your initial investment.
           </Text>
         </View>
@@ -287,8 +285,8 @@ export default function LoginScreen() {
         <View style={styles.complianceSection}>
           <Text style={styles.complianceTitle}>Regulatory Compliance</Text>
           <Text style={styles.complianceText}>
-            This platform complies with applicable regulations in the United States, European Union, and 
-            other jurisdictions. We implement KYC/AML procedures and report to relevant authorities as required 
+            This platform complies with applicable regulations in the United States, European Union, and
+            other jurisdictions. We implement KYC/AML procedures and report to relevant authorities as required
             by law. Your data is protected in accordance with GDPR and other privacy regulations.
           </Text>
         </View>
@@ -296,8 +294,8 @@ export default function LoginScreen() {
         <View style={styles.complianceSection}>
           <Text style={styles.complianceTitle}>No Guarantee of Profits</Text>
           <Text style={styles.complianceText}>
-            Past performance is not indicative of future results. Any testimonials or examples shown are not 
-            guaranteed and individual results will vary. We make no representations or warranties about the 
+            Past performance is not indicative of future results. Any testimonials or examples shown are not
+            guaranteed and individual results will vary. We make no representations or warranties about the
             accuracy or completeness of any information provided.
           </Text>
         </View>
