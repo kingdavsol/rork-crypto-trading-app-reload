@@ -20,28 +20,7 @@ export default function LandingPage() {
   console.log('LandingPage: Rendering');
   const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    console.log('LandingPage: Checking authentication', isAuthenticated);
-    if (!isLoading && isAuthenticated) {
-      console.log('LandingPage: User authenticated, redirecting to tabs');
-      router.replace('/(tabs)/home');
-    }
-  }, [isAuthenticated, isLoading]);
-
-  // Show loading screen while checking authentication
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={['#0A0E27', '#1A1F3A']}
-          style={styles.loadingContainer}
-        >
-          <Text style={styles.logo}>CryptoBot Pro</Text>
-        </LinearGradient>
-      </SafeAreaView>
-    );
-  }
-
+  // All hooks must be called before any conditional returns
   const { data: markets, isLoading: marketsLoading, error } = useQuery<MarketCoin[]>({
     queryKey: ['landing-markets', 'coingecko'],
     queryFn: () => MarketService.fetchMarkets(200),
@@ -64,6 +43,28 @@ export default function LandingPage() {
       .sort((a, b) => (b.price_change_percentage_7d_in_currency || 0) - (a.price_change_percentage_7d_in_currency || 0))
       .slice(0, 4);
   }, [markets]);
+
+  useEffect(() => {
+    console.log('LandingPage: Checking authentication', isAuthenticated);
+    if (!isLoading && isAuthenticated) {
+      console.log('LandingPage: User authenticated, redirecting to tabs');
+      router.replace('/(tabs)/home');
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={['#0A0E27', '#1A1F3A']}
+          style={styles.loadingContainer}
+        >
+          <Text style={styles.logo}>CryptoBot Pro</Text>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   const buyInAmounts = [100, 300, 500, 1000, 2000, 5000];
 
