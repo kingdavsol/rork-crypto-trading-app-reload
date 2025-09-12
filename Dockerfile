@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json bun.lock tsconfig.json ./
 COPY . .
 RUN bun install
-RUN bunx expo export --platform web
+RUN bunx expo export --platform web --output-dir dist
 
 FROM nginx:alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
