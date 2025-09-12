@@ -15,9 +15,6 @@ const { width } = Dimensions.get('window');
 export default function AnalyticsScreen() {
   const [timeframe, setTimeframe] = useState('7D');
 
-  const performanceData = [50, 45, 60, 58, 70, 65, 80, 75, 90, 85, 95, 100];
-  const volumeData = [30, 40, 35, 50, 45, 60, 55, 70, 65, 75, 80, 85];
-
   const stats = [
     { label: 'Total Profit', value: '$2,458', icon: DollarSign, color: '#10B981' },
     { label: 'Win Rate', value: '67%', icon: TrendingUp, color: '#6366F1' },
